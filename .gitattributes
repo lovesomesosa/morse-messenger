@@ -1,2 +1,16 @@
-# Auto detect text files and perform LF normalization
+# Нормализация окончаний строк для всех текстовых файлов
 * text=auto
+
+# Явное указание LF для ключевых типов файлов
+*.md text eol=lf
+*.java text eol=lf
+*.py text eol=lf
+*.xml text eol=lf
+*.gradle text eol=lf
+
+# Бинарные файлы
+*.apk binary
+*.jpg binary
+*.png binary
+*.jks binary
+*.keystore binary

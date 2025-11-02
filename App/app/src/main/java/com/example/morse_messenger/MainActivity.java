@@ -38,16 +38,29 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
+            // === ВАЛИДАЦИЯ ===
+            StringBuilder invalidChars = new StringBuilder();
+            for (int i = 0; i < input.length(); i++) {
+                char c = Character.toLowerCase(input.charAt(i));
+                if (c == ' ') continue;
+                if (morseEncode(c).isEmpty() && invalidChars.indexOf(String.valueOf(c)) == -1) {
+                    invalidChars.append(c).append(" ");
+                }
+            }
+
+            if (invalidChars.length() > 0) {
+                outputTextView.setText("Недопустимые символы: " + invalidChars.toString().trim());
+                return;
+            }
+            // === КОНЕЦ ВАЛИДАЦИИ ===
+
+            // === ПЕРЕВОД ===
             StringBuilder result = new StringBuilder();
             boolean inWord = false;
 
             for (int i = 0; i < input.length(); i++) {
                 char c = Character.toLowerCase(input.charAt(i));
                 String morse = morseEncode(c);
-
-                if (morse.isEmpty()) {
-                    continue;
-                }
 
                 if (c == ' ') {
                     if (inWord) {
@@ -235,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
                 return "...-..-";
             case '@':
                 return ".--.-.";
-            case 'ñ':
+            case '№':
                 return "--.--";
 
             default:

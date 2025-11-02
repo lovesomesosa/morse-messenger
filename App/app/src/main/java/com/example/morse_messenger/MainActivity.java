@@ -5,7 +5,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -22,119 +21,225 @@ public class MainActivity extends AppCompatActivity {
         outputTextView = findViewById(R.id.output_text_view);
         translateButton = findViewById(R.id.translate_button);
 
-        translateButton.setOnClickListener(v -> translateToMorse());
+        translateButton.setOnClickListener(v -> {
+            try {
+                translateToMorse();
+            } catch (Exception e) {
+                outputTextView.setText("Неожиданная ошибка");
+            }
+        });
     }
 
     private void translateToMorse() {
-        String inputText = inputEditText.getText().toString().trim();
-        if (inputText.isEmpty()) {
-            outputTextView.setText("");
-            return;
-        }
-
-        StringBuilder morseResult = new StringBuilder();
-        String[] letters = inputText.split("");
-        for (String letter : letters) {
-            String morse = morseEncode(letter);
-            if (!morse.isEmpty()) {
-                morseResult.append(morse).append(" ");
+        try {
+            String input = inputEditText.getText().toString().trim();
+            if (input.isEmpty()) {
+                outputTextView.setText("");
+                return;
             }
+
+            StringBuilder result = new StringBuilder();
+            boolean inWord = false;
+
+            for (int i = 0; i < input.length(); i++) {
+                char c = Character.toLowerCase(input.charAt(i));
+                String morse = morseEncode(c);
+
+                if (morse.isEmpty()) {
+                    continue;
+                }
+
+                if (c == ' ') {
+                    if (inWord) {
+                        result.append(" / ");
+                        inWord = false;
+                    }
+                    continue;
+                }
+
+                if (inWord && result.length() > 0) {
+                    result.append(' ');
+                }
+
+                result.append(morse);
+                inWord = true;
+            }
+
+            String out = result.toString().trim();
+            outputTextView.setText(out.isEmpty() ? "Нет поддерживаемых символов" : out);
+
+        } catch (Exception e) {
+            outputTextView.setText("Ошибка обработки ввода");
         }
-        outputTextView.setText(morseResult.toString().trim());
     }
 
-    static String morseEncode(String x) {
-        switch (x.toLowerCase(Locale.getDefault())) {
-            case "a": return ".-";
-            case "b": return "-...";
-            case "c": return "-.-.";
-            case "d": return "-..";
-            case "e": return ".";
-            case "f": return "..-.";
-            case "g": return "--.";
-            case "h": return "....";
-            case "i": return "..";
-            case "j": return ".---";
-            case "k": return "-.-";
-            case "l": return ".-..";
-            case "m": return "--";
-            case "n": return "-.";
-            case "o": return "---";
-            case "p": return ".--.";
-            case "q": return "--.-";
-            case "r": return ".-.";
-            case "s": return "...";
-            case "t": return "-";
-            case "u": return "..-";
-            case "v": return "...-";
-            case "w": return ".--";
-            case "x": return "-..-";
-            case "y": return "-.--";
-            case "z": return "--..";
-            case " ": return "/ ";
-            case "0": return "-----";
-            case "1": return ".----";
-            case "2": return "..---";
-            case "3": return "...--";
-            case "4": return "....-";
-            case "5": return ".....";
-            case "6": return "-....";
-            case "7": return "--...";
-            case "8": return "---..";
-            case "9": return "----.";
-            case "а": return ".-";
-            case "б": return "-...";
-            case "в": return ".--";
-            case "г": return "--.";
-            case "д": return "-..";
-            case "е": return ".";
-            case "ё": return ".";
-            case "ж": return "...-";
-            case "з": return "--..";
-            case "и": return "..";
-            case "й": return ".---";
-            case "к": return "-.-";
-            case "л": return ".-..";
-            case "м": return "--";
-            case "н": return "-.";
-            case "о": return "---";
-            case "п": return ".--.";
-            case "р": return ".-.";
-            case "с": return "...";
-            case "т": return "-";
-            case "у": return "..-";
-            case "ф": return "..-.";
-            case "х": return "....";
-            case "ц": return "-.-.";
-            case "ч": return "---.";
-            case "ш": return "----";
-            case "щ": return "--.-";
-            case "ъ": return "--.--";
-            case "ы": return "-.--";
-            case "ь": return "-..-";
-            case "э": return "..-..";
-            case "ю": return "..--";
-            case "я": return ".-.-";
-            case "ñ": return "--.--";
-            case ",": return "--..--";
-            case ".": return ".-.-.-";
-            case "?": return "..--..";
-            case "'": return ".----.";
-            case "!": return "-.-.--";
-            case "/": return "-..-.";
-            case "(": return "-.--.";
-            case ")": return "-.--.-";
-            case "&": return ".-...";
-            case ":": return "---...";
-            case ";": return "-.-.-.";
-            case "=": return "-...-";
-            case "+": return ".-.-.";
-            case "-": return "-....-";
-            case "_": return "..--.-";
-            case "\"": return ".-..-.";
-            case "$": return "...-..-";
-            case "@": return ".--.-.";
-            default: return "";
+    private static String morseEncode(char c) {
+        switch (c) {
+            // --- Латиница + Кириллица (общие) ---
+            case 'a':
+            case 'а':
+                return ".-";
+            case 'b':
+            case 'б':
+                return "-...";
+            case 'c':
+            case 'ц':
+                return "-.-.";
+            case 'd':
+            case 'д':
+                return "-..";
+            case 'e':
+            case 'ё':
+            case 'е':
+                return ".";
+            case 'f':
+            case 'ф':
+                return "..-.";
+            case 'g':
+            case 'г':
+                return "--.";
+            case 'h':
+            case 'х':
+                return "....";
+            case 'i':
+            case 'и':
+                return "..";
+            case 'j':
+            case 'й':
+                return ".---";
+            case 'k':
+            case 'к':
+                return "-.-";
+            case 'l':
+            case 'л':
+                return ".-..";
+            case 'm':
+            case 'м':
+                return "--";
+            case 'n':
+            case 'н':
+                return "-.";
+            case 'o':
+            case 'о':
+                return "---";
+            case 'p':
+            case 'п':
+                return ".--.";
+            case 'q':
+            case 'щ':
+                return "--.-";
+            case 'r':
+            case 'р':
+                return ".-.";
+            case 's':
+            case 'с':
+                return "...";
+            case 't':
+            case 'т':
+                return "-";
+            case 'u':
+            case 'у':
+                return "..-";
+
+            // --- в и v — одинаково ---
+            case 'в':
+            case 'v':
+                return ".--";
+
+            // --- w и ж — одинаково, отдельно от в ---
+            case 'w':
+            case 'ж':
+                return "...-";
+
+            // --- Остальные ---
+            case 'x':
+            case 'ь':
+                return "-..-";
+            case 'y':
+            case 'ы':
+                return "-.--";
+            case 'z':
+            case 'з':
+                return "--..";
+
+            // --- Цифры ---
+            case '0':
+                return "-----";
+            case '1':
+                return ".----";
+            case '2':
+                return "..---";
+            case '3':
+                return "...--";
+            case '4':
+                return "....-";
+            case '5':
+                return ".....";
+            case '6':
+                return "-....";
+            case '7':
+                return "--...";
+            case '8':
+                return "---..";
+            case '9':
+                return "----.";
+
+            // --- Уникальные кириллические ---
+            case 'ч':
+                return "---.";
+            case 'ш':
+                return "----";
+            case 'ъ':
+                return "--.--";
+            case 'э':
+                return "..-..";
+            case 'ю':
+                return "..--";
+            case 'я':
+                return ".-.-";
+
+            // --- Знаки препинания ---
+            case ',':
+                return "--..--";
+            case '.':
+                return ".-.-.-";
+            case '?':
+                return "..--..";
+            case '\'':
+                return ".----.";
+            case '!':
+                return "-.-.--";
+            case '/':
+                return "-..-.";
+            case '(':
+                return "-.--.";
+            case ')':
+                return "-.--.-";
+            case '&':
+                return ".-...";
+            case ':':
+                return "---...";
+            case ';':
+                return "-.-.-.";
+            case '=':
+                return "-...-";
+            case '+':
+                return ".-.-.";
+            case '-':
+                return "-....-";
+            case '_':
+                return "..--.-";
+            case '"':
+                return ".-..-.";
+            case '$':
+                return "...-..-";
+            case '@':
+                return ".--.-.";
+            case 'ñ':
+                return "--.--";
+
+            default:
+                return "";
         }
     }
 }

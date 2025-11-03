@@ -38,7 +38,6 @@ dependencies {
     // === ЮНИТ-ТЕСТЫ ===
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
-    testImplementation(libs.mockito.inline)
     testImplementation(libs.robolectric)
 
     // === ИНСТРУМЕНТАЛЬНЫЕ ТЕСТЫ ===

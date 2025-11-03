@@ -1,0 +1,12 @@
+-- ПРОБЛЕМЫ --
+1. Если скрипт выдает ошибку: "advertising not found", то выполнить "sudo hciconfig hci0 piscan"
+2. Если выдает ошибку "bluetooth.btcommon.BluetoothError: [Errno 2] No such file or directory",
+то выполнить: 
+	sudo systemctl stop bluetooth
+	sudo /usr/sbin/bluetoothd --compat --noplugin=sap &
+	sudo apt-get install pybluez (могут быть исключения, в случае таковых устанавливать с гитхаба)
+
+-- СОВЕТЫ --
+1. Запускать sudo python3 "название скрипта.py"
+2. Чтобы блютуз работал, вставлять и доставать адаптер блютуз во время работы распбери
+3. Не включать адаптер блютуз в настройках фильтров USB virtualbox 

@@ -32,10 +32,16 @@ android {
 }
 
 dependencies {
-
     implementation(libs.appcompat)
     implementation(libs.material)
+
+    // === ЮНИТ-ТЕСТЫ ===
     testImplementation(libs.junit)
+    testImplementation(libs.mockito.core)
+    testImplementation(libs.mockito.inline)
+    testImplementation(libs.robolectric)
+
+    // === ИНСТРУМЕНТАЛЬНЫЕ ТЕСТЫ ===
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 }

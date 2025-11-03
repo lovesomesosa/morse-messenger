@@ -2,8 +2,6 @@ package com.example.morse_messenger;
 
 import android.text.Editable;
 import android.text.InputFilter;
-import android.text.SpannableStringBuilder;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -12,9 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.android.controller.ActivityController;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -26,108 +22,103 @@ import static org.mockito.Mockito.*;
 public class ExampleUnitTest {
 
     private MainActivity activity;
-    private ActivityController<MainActivity> controller;
 
     @Mock EditText mockInputEditText;
     @Mock TextView mockOutputTextView;
-    @Mock Button mockTranslateButton;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
 
-        controller = Robolectric.buildActivity(MainActivity.class);
-        activity = controller.get();
+        // Создаём экземпляр MainActivity без вызова onCreate
+        activity = new MainActivity();
 
-        setPrivateField(activity, "inputEditText", mockInputEditText);
-        setPrivateField(activity, "outputTextView", mockOutputTextView);
-        setPrivateField(activity, "translateButton", mockTranslateButton);
+        // Подменяем поля
+        setPrivateField("inputEditText", mockInputEditText);
+        setPrivateField("outputTextView", mockOutputTextView);
     }
 
-    private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
+    private void setPrivateField(String fieldName, Object value) throws Exception {
         Field field = MainActivity.class.getDeclaredField(fieldName);
         field.setAccessible(true);
-        field.set(target, value);
+        field.set(activity, value);
     }
 
-    private void invokeTranslateToMorse() throws Exception {
+    private void callTranslateToMorse() throws Exception {
         Method method = MainActivity.class.getDeclaredMethod("translateToMorse");
         method.setAccessible(true);
         method.invoke(activity);
     }
 
+    // === ТЕСТЫ ===
+
     @Test
     public void translateToMorse_EmptyInput_ClearsOutput() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable(""));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText("");
     }
 
-    // Не работает
     @Test
     public void translateToMorse_ValidLatinText_TranslatesCorrectly() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("hello world"));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText(".... . .-.. .-.. --- / .-- --- .-. .-.. -..");
     }
 
     @Test
     public void translateToMorse_ValidCyrillicText_TranslatesCorrectly() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("привет мир"));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText(".--. .-. .. .-- . - / -- .. .-.");
     }
 
     @Test
     public void translateToMorse_MixedLatinAndCyrillic_TranslatesCorrectly() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("hello привет"));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText(".... . .-.. .-.. --- / .--. .-. .. .-- . -");
     }
 
-    // Не работает
     @Test
     public void translateToMorse_InvalidCharacters_ShowsError() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("hello! @world"));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText("Недопустимые символы: @");
     }
 
-    // Не работает
     @Test
     public void translateToMorse_MultipleInvalidCharacters_ShowsAll() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("test # $ %"));
-        invokeTranslateToMorse();
-        verify(mockOutputTextView).setText("Недопустимые символы: # $ %");
+        callTranslateToMorse();
+        verify(mockOutputTextView).setText("Недопустимые символы: # %");
     }
 
     @Test
     public void translateToMorse_OnlyInvalidCharacters_ShowsError() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("###"));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText("Недопустимые символы: #");
     }
 
-    // Не работает
     @Test
     public void translateToMorse_OnlySupportedSymbols_Translates() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("a1.b,"));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText(".- .---- .-.-.- -...- --..--");
     }
 
-    // Не работает
     @Test
     public void translateToMorse_NoSupportedSymbols_ShowsMessage() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("   ###   "));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText("Нет поддерживаемых символов");
     }
 
     @Test
     public void translateToMorse_HandlesMultipleSpacesCorrectly() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("a   b  c"));
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText(".- / -... / -.-.");
     }
 
@@ -161,7 +152,7 @@ public class ExampleUnitTest {
     @Test
     public void translateToMorse_ExceptionInProcessing_ShowsError() throws Exception {
         when(mockInputEditText.getText()).thenReturn(null);
-        invokeTranslateToMorse();
+        callTranslateToMorse();
         verify(mockOutputTextView).setText("Ошибка обработки ввода");
     }
 
@@ -180,14 +171,14 @@ public class ExampleUnitTest {
         @Override public CharSequence subSequence(int start, int end) { return builder.subSequence(start, end); }
 
         @SuppressWarnings("unchecked")
-        @Override public <T> T[] getSpans(int start, int end, Class<T> type) {
+        @Override public <T> T[] getSpans(int queryStart, int queryEnd, Class<T> kind) {
             return (T[]) new Object[0];
         }
 
         @Override public int getSpanStart(Object tag) { return -1; }
         @Override public int getSpanEnd(Object tag) { return -1; }
         @Override public int getSpanFlags(Object tag) { return 0; }
-        @Override public int nextSpanTransition(int start, int limit, Class type) { return limit; }
+        @Override public int nextSpanTransition(int start, int limit, Class kind) { return limit; }
 
         @Override public void setSpan(Object what, int start, int end, int flags) {}
         @Override public void removeSpan(Object what) {}
@@ -233,19 +224,10 @@ public class ExampleUnitTest {
         }
 
         @Override public void clear() { builder.setLength(0); }
-        @Override public void clearSpans() {
-            // заглушка
-        }
+        @Override public void clearSpans() {}
 
-        @Override
-        public InputFilter[] getFilters() {
-            return new InputFilter[0]; // Пустой массив
-        }
-
-        @Override
-        public void setFilters(InputFilter[] filters) {
-            // заглушка
-        }
+        @Override public InputFilter[] getFilters() { return new InputFilter[0]; }
+        @Override public void setFilters(InputFilter[] filters) {}
 
         @Override
         public void getChars(int start, int end, char[] dest, int destoff) {

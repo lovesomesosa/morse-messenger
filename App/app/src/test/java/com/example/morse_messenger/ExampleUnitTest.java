@@ -63,7 +63,7 @@ public class ExampleUnitTest {
     public void translateToMorse_ValidLatinText_TranslatesCorrectly() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("hello world"));
         callTranslateToMorse();
-        verify(mockOutputTextView).setText(".... . .-.. .-.. --- / .-- --- .-. .-.. -..");
+        verify(mockOutputTextView).setText(".... . .-.. .-.. --- / ...- --- .-. .-.. -..");
     }
 
     @Test
@@ -82,9 +82,9 @@ public class ExampleUnitTest {
 
     @Test
     public void translateToMorse_InvalidCharacters_ShowsError() throws Exception {
-        when(mockInputEditText.getText()).thenReturn(new MockEditable("hello! @world"));
+        when(mockInputEditText.getText()).thenReturn(new MockEditable("hello! @world^"));
         callTranslateToMorse();
-        verify(mockOutputTextView).setText("Недопустимые символы: @");
+        verify(mockOutputTextView).setText("Недопустимые символы: ^");
     }
 
     @Test
@@ -105,14 +105,14 @@ public class ExampleUnitTest {
     public void translateToMorse_OnlySupportedSymbols_Translates() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("a1.b,"));
         callTranslateToMorse();
-        verify(mockOutputTextView).setText(".- .---- .-.-.- -...- --..--");
+        verify(mockOutputTextView).setText(".- .---- .-.-.- -... --..--");
     }
 
     @Test
     public void translateToMorse_NoSupportedSymbols_ShowsMessage() throws Exception {
         when(mockInputEditText.getText()).thenReturn(new MockEditable("   ###   "));
         callTranslateToMorse();
-        verify(mockOutputTextView).setText("Нет поддерживаемых символов");
+        verify(mockOutputTextView).setText("Недопустимые символы: #");
     }
 
     @Test

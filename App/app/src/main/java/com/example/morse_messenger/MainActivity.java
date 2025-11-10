@@ -213,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (invalidChars.length() > 0) {
-                outputTextView.setText("Недопустимые: " + invalidChars.toString().trim());
+                outputTextView.setText("Недопустимые символы: " + invalidChars.toString().trim());
                 return;
             }
 
@@ -251,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
         } catch (Exception e) {
-            outputTextView.setText("Ошибка");
+            outputTextView.setText("Ошибка обработки ввода");
         }
     }
 

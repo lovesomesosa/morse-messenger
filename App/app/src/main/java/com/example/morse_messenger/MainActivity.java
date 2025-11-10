@@ -21,7 +21,8 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity {
 
     private EditText inputEditText;
-    private TextView outputTextView;
+    private TextView statusTextView;     // ← Статус Bluetooth
+    private TextView outputTextView;     // ← Результат
     private Button translateButton;
 
     private BluetoothAdapter bluetoothAdapter;
@@ -29,7 +30,6 @@ public class MainActivity extends AppCompatActivity {
     private OutputStream outputStream;
 
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    private static final String PI_NAME = "raspberry";
     private static final int PERMISSION_REQUEST_CODE = 1;
 
     @Override
@@ -37,13 +37,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Инициализация
         inputEditText = findViewById(R.id.input_edit_text);
+        statusTextView = findViewById(R.id.status_text_view);
         outputTextView = findViewById(R.id.output_text_view);
         translateButton = findViewById(R.id.translate_button);
 
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
-            outputTextView.setText("Bluetooth не поддерживается");
+            statusTextView.setText("Bluetooth не поддерживается");
+            statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
             return;
         }
 
@@ -51,15 +54,26 @@ public class MainActivity extends AppCompatActivity {
         requestBluetoothPermissions();
 
         translateButton.setOnClickListener(v -> {
+            // 1. Очищаем статус
+            statusTextView.setText("");
+
+            // 2. ВСЕГДА переводим
+            translateToMorse();
+
+            // 3. Проверяем Bluetooth
             if (!hasPermissions()) {
-                outputTextView.setText("Нет разрешений на Bluetooth");
+                statusTextView.setText("Нет разрешений на Bluetooth");
+                statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
                 return;
             }
+
             if (!connectToPi()) {
-                outputTextView.setText("Не удалось подключиться к Pi");
-                return;
+                statusTextView.setText("Raspberry Pi не найден или не подключён");
+                statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
+            } else {
+                statusTextView.setText("Подключено к Raspberry Pi");
+                statusTextView.setTextColor(getColor(android.R.color.holo_green_dark));
             }
-            translateToMorse(); // твоя функция с комментариями
         });
     }
 
@@ -104,11 +118,13 @@ public class MainActivity extends AppCompatActivity {
             }
             if (allGranted) {
                 runOnUiThread(() -> {
-                    outputTextView.setText("Разрешения получены!");
+                    statusTextView.setText("Разрешения получены");
+                    statusTextView.setTextColor(getColor(android.R.color.holo_green_dark));
                     connectToPi();
                 });
             } else {
-                outputTextView.setText("Разрешения отклонены. Bluetooth не работает.");
+                statusTextView.setText("Разрешения отклонены");
+                statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
             }
         }
     }
@@ -117,21 +133,39 @@ public class MainActivity extends AppCompatActivity {
         if (socket != null && socket.isConnected()) return true;
 
         try {
-            if (!hasPermissions()) return false;
+            // ЯВНАЯ ПРОВЕРКА РАЗРЕШЕНИЯ
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                    != PackageManager.PERMISSION_GRANTED) {
+                runOnUiThread(() -> {
+                    statusTextView.setText("Нет разрешения BLUETOOTH_CONNECT");
+                    statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
+                });
+                return false;
+            }
 
             Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
             BluetoothDevice piDevice = null;
 
             for (BluetoothDevice device : pairedDevices) {
                 String name = device.getName();
-                if (name != null && name.contains("raspberry")) {
+                if (name != null && name.toLowerCase().contains("raspberry")) {
                     piDevice = device;
                     break;
                 }
             }
 
             if (piDevice == null) {
-                runOnUiThread(() -> outputTextView.setText("Raspberry Pi не найден в сопряжённых"));
+                runOnUiThread(() -> {
+                    statusTextView.setText("Raspberry Pi не найден в сопряжённых");
+                    statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
+                });
+                return false;
+            }
+
+            // Проверка на BLUETOOTH_CONNECT для createRfcommSocket
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                    != PackageManager.PERMISSION_GRANTED) {
+                runOnUiThread(() -> statusTextView.setText("Нет разрешения для подключения"));
                 return false;
             }
 
@@ -140,21 +174,26 @@ public class MainActivity extends AppCompatActivity {
             outputStream = socket.getOutputStream();
 
             runOnUiThread(() -> {
-                outputTextView.setText("Подключено к Raspberry Pi!");
-                Toast.makeText(this, "Bluetooth подключён", Toast.LENGTH_SHORT).show();
+                statusTextView.setText("Подключено к Raspberry Pi");
+                statusTextView.setTextColor(getColor(android.R.color.holo_green_dark));
             });
             return true;
 
         } catch (SecurityException e) {
-            runOnUiThread(() -> outputTextView.setText("Нет разрешения: " + e.getMessage()));
+            runOnUiThread(() -> {
+                statusTextView.setText("Нет разрешения: " + e.getMessage());
+                statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
+            });
             return false;
         } catch (Exception e) {
-            runOnUiThread(() -> outputTextView.setText("Ошибка: " + e.getMessage()));
+            runOnUiThread(() -> {
+                statusTextView.setText("Ошибка подключения: " + e.getMessage());
+                statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
+            });
             return false;
         }
     }
 
-    // === ТВОЯ ФУНКЦИЯ С КОММЕНТАРИЯМИ ===
     private void translateToMorse() {
         try {
             String input = inputEditText.getText().toString().trim();
@@ -163,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            // === ВАЛИДАЦИЯ ===
+            // Валидация
             StringBuilder invalidChars = new StringBuilder();
             for (int i = 0; i < input.length(); i++) {
                 char c = Character.toLowerCase(input.charAt(i));
@@ -174,12 +213,11 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (invalidChars.length() > 0) {
-                outputTextView.setText("Недопустимые символы: " + invalidChars.toString().trim());
+                outputTextView.setText("Недопустимые: " + invalidChars.toString().trim());
                 return;
             }
-            // === КОНЕЦ ВАЛИДАЦИИ ===
 
-            // === ПЕРЕВОД ===
+            // Перевод
             StringBuilder result = new StringBuilder();
             boolean inWord = false;
 
@@ -188,36 +226,32 @@ public class MainActivity extends AppCompatActivity {
                 String morse = morseEncode(c);
 
                 if (c == ' ') {
-                    if (inWord) {
-                        result.append(" / ");
-                        inWord = false;
-                    }
+                    if (inWord) result.append(" / ");
+                    inWord = false;
                     continue;
                 }
 
-                if (inWord && result.length() > 0) {
-                    result.append(' ');
-                }
-
+                if (inWord && result.length() > 0) result.append(' ');
                 result.append(morse);
                 inWord = true;
             }
 
             String out = result.toString().trim();
-            outputTextView.setText(out.isEmpty() ? "Нет поддерживаемых символов" : out);
+            outputTextView.setText(out.isEmpty() ? "Нет символов" : out);
 
-            // === ОТПРАВКА НА PI ===
+            // Отправка (только если подключено)
             if (outputStream != null) {
                 try {
                     outputStream.write((out + "\n").getBytes());
                     outputStream.flush();
                 } catch (Exception e) {
-                    outputTextView.setText("Ошибка отправки: " + e.getMessage());
+                    statusTextView.setText("Ошибка отправки");
+                    statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
                 }
             }
 
         } catch (Exception e) {
-            outputTextView.setText("Ошибка обработки ввода");
+            outputTextView.setText("Ошибка");
         }
     }
 
@@ -230,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    // === ТВОЯ ФУНКЦИЯ morseEncode (без изменений) ===
+    // === morseEncode (без изменений) ===
     private static String morseEncode(char c) {
         switch (c) {
             // --- Латиница + Кириллица (общие) ---
@@ -397,7 +431,6 @@ public class MainActivity extends AppCompatActivity {
                 return "--.--";
 
             default:
-                return "";
-        }
+                return "";}
+        };
     }
-}

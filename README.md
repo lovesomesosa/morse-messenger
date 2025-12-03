@@ -83,7 +83,6 @@
 3. Демонстрация работы bluetooth приемника запущенного на RaspberryPie
 
 <img width="827" height="698" alt="Снимок экрана 2025-12-03 190647" src="https://github.com/user-attachments/assets/455a36a9-d628-45df-8bbb-38efd2abbc94" />
-<img width="827" height="698" alt="Снимок экрана 2025-12-03 190647" src="https://github.com/user-attachments/assets/59be425e-085c-43ee-b1de-c419a04383fc" />
 
 5. Видео-демонстрация работы приложения на телефоне, подключенном по Bluetooth к RaspberryPie OS, и скрипта приемника сигналов на RaspberryPie.
 

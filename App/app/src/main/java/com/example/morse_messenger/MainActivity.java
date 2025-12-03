@@ -10,10 +10,15 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import android.text.Editable;
+import android.text.TextWatcher;
+
 import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
@@ -21,14 +26,13 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity {
 
     private EditText inputEditText;
-    private TextView statusTextView;     // ← Статус Bluetooth
-    private TextView outputTextView;     // ← Результат
+    private TextView statusTextView;   // ← Статус Bluetooth
+    private TextView outputTextView;   // ← Результат
     private Button translateButton;
 
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothSocket socket;
     private OutputStream outputStream;
-
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final int PERMISSION_REQUEST_CODE = 1;
 
@@ -50,14 +54,30 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // ДИНАМИЧЕСКИЙ ПЕРЕВОД ПРИ ИЗМЕНЕНИИ ТЕКСТА
+        inputEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Переводим в Морзе без отправки по Bluetooth
+                dynamicTranslateToMorse();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) { }
+        });
+
         // Запрос разрешений
         requestBluetoothPermissions();
 
+        // КНОПКА ТЕПЕРЬ ТОЛЬКО ОТПРАВЛЯЕТ (И ИСПОЛЬЗУЕТ СТАРУЮ ЛОГИКУ translateToMorse)
         translateButton.setOnClickListener(v -> {
             // 1. Очищаем статус
             statusTextView.setText("");
 
-            // 2. ВСЕГДА переводим
+            // 2. Перевод + отправка по Bluetooth (логика как была)
             translateToMorse();
 
             // 3. Проверяем Bluetooth
@@ -106,8 +126,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         if (requestCode == PERMISSION_REQUEST_CODE) {
             boolean allGranted = true;
             for (int result : grantResults) {
@@ -116,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
             }
+
             if (allGranted) {
                 runOnUiThread(() -> {
                     statusTextView.setText("Разрешения получены");
@@ -177,8 +200,8 @@ public class MainActivity extends AppCompatActivity {
                 statusTextView.setText("Подключено к Raspberry Pi");
                 statusTextView.setTextColor(getColor(android.R.color.holo_green_dark));
             });
-            return true;
 
+            return true;
         } catch (SecurityException e) {
             runOnUiThread(() -> {
                 statusTextView.setText("Нет разрешения: " + e.getMessage());
@@ -191,6 +214,57 @@ public class MainActivity extends AppCompatActivity {
                 statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
             });
             return false;
+        }
+    }
+
+    // ДИНАМИЧЕСКИЙ ПЕРЕВОД БЕЗ ОТПРАВКИ ПО BLUETOOTH
+    private void dynamicTranslateToMorse() {
+        try {
+            String input = inputEditText.getText().toString().trim();
+            if (input.isEmpty()) {
+                outputTextView.setText("");
+                return;
+            }
+
+            // Валидация
+            StringBuilder invalidChars = new StringBuilder();
+            for (int i = 0; i < input.length(); i++) {
+                char c = Character.toLowerCase(input.charAt(i));
+                if (c == ' ') continue;
+                if (morseEncode(c).isEmpty() && invalidChars.indexOf(String.valueOf(c)) == -1) {
+                    invalidChars.append(c).append(" ");
+                }
+            }
+
+            if (invalidChars.length() > 0) {
+                outputTextView.setText("Недопустимые символы: " + invalidChars.toString().trim());
+                return;
+            }
+
+            // Перевод
+            StringBuilder result = new StringBuilder();
+            boolean inWord = false;
+
+            for (int i = 0; i < input.length(); i++) {
+                char c = Character.toLowerCase(input.charAt(i));
+                String morse = morseEncode(c);
+
+                if (c == ' ') {
+                    if (inWord) result.append(" / ");
+                    inWord = false;
+                    continue;
+                }
+
+                if (inWord && result.length() > 0) result.append(' ');
+                result.append(morse);
+                inWord = true;
+            }
+
+            String out = result.toString().trim();
+            outputTextView.setText(out.isEmpty() ? "Нет символов" : out);
+
+        } catch (Exception e) {
+            outputTextView.setText("Ошибка обработки ввода");
         }
     }
 
@@ -249,7 +323,6 @@ public class MainActivity extends AppCompatActivity {
                     statusTextView.setTextColor(getColor(android.R.color.holo_red_dark));
                 }
             }
-
         } catch (Exception e) {
             outputTextView.setText("Ошибка обработки ввода");
         }
@@ -260,7 +333,8 @@ public class MainActivity extends AppCompatActivity {
         try {
             if (outputStream != null) outputStream.close();
             if (socket != null) socket.close();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         super.onDestroy();
     }
 
@@ -268,169 +342,81 @@ public class MainActivity extends AppCompatActivity {
     private static String morseEncode(char c) {
         switch (c) {
             // --- Латиница + Кириллица (общие) ---
-            case 'a':
-            case 'а':
-                return ".-";
-            case 'b':
-            case 'б':
-                return "-...";
-            case 'c':
-            case 'ц':
-                return "-.-.";
-            case 'd':
-            case 'д':
-                return "-..";
-            case 'e':
-            case 'ё':
-            case 'е':
-                return ".";
-            case 'f':
-            case 'ф':
-                return "..-.";
-            case 'g':
-            case 'г':
-                return "--.";
-            case 'h':
-            case 'х':
-                return "....";
-            case 'i':
-            case 'и':
-                return "..";
-            case 'j':
-            case 'й':
-                return ".---";
-            case 'k':
-            case 'к':
-                return "-.-";
-            case 'l':
-            case 'л':
-                return ".-..";
-            case 'm':
-            case 'м':
-                return "--";
-            case 'n':
-            case 'н':
-                return "-.";
-            case 'o':
-            case 'о':
-                return "---";
-            case 'p':
-            case 'п':
-                return ".--.";
-            case 'q':
-            case 'щ':
-                return "--.-";
-            case 'r':
-            case 'р':
-                return ".-.";
-            case 's':
-            case 'с':
-                return "...";
-            case 't':
-            case 'т':
-                return "-";
-            case 'u':
-            case 'у':
-                return "..-";
+            case 'a': case 'а': return ".-";
+            case 'b': case 'б': return "-...";
+            case 'c': case 'ц': return "-.-.";
+            case 'd': case 'д': return "-..";
+            case 'e': case 'ё': case 'е': return ".";
+            case 'f': case 'ф': return "..-.";
+            case 'g': case 'г': return "--.";
+            case 'h': case 'х': return "....";
+            case 'i': case 'и': return "..";
+            case 'j': case 'й': return ".---";
+            case 'k': case 'к': return "-.-";
+            case 'l': case 'л': return ".-..";
+            case 'm': case 'м': return "--";
+            case 'n': case 'н': return "-.";
+            case 'o': case 'о': return "---";
+            case 'p': case 'п': return ".--.";
+            case 'q': case 'щ': return "--.-";
+            case 'r': case 'р': return ".-.";
+            case 's': case 'с': return "...";
+            case 't': case 'т': return "-";
+            case 'u': case 'у': return "..-";
 
             // --- в и v — одинаково ---
-            case 'в':
-            case 'v':
-                return ".--";
+            case 'в': case 'v': return ".--";
 
             // --- w и ж — одинаково, отдельно от в ---
-            case 'w':
-            case 'ж':
-                return "...-";
+            case 'w': case 'ж': return "...-";
 
             // --- Остальные ---
-            case 'x':
-            case 'ь':
-                return "-..-";
-            case 'y':
-            case 'ы':
-                return "-.--";
-            case 'z':
-            case 'з':
-                return "--..";
+            case 'x': case 'ь': return "-..-";
+            case 'y': case 'ы': return "-.--";
+            case 'z': case 'з': return "--..";
 
             // --- Цифры ---
-            case '0':
-                return "-----";
-            case '1':
-                return ".----";
-            case '2':
-                return "..---";
-            case '3':
-                return "...--";
-            case '4':
-                return "....-";
-            case '5':
-                return ".....";
-            case '6':
-                return "-....";
-            case '7':
-                return "--...";
-            case '8':
-                return "---..";
-            case '9':
-                return "----.";
+            case '0': return "-----";
+            case '1': return ".----";
+            case '2': return "..---";
+            case '3': return "...--";
+            case '4': return "....-";
+            case '5': return ".....";
+            case '6': return "-....";
+            case '7': return "--...";
+            case '8': return "---..";
+            case '9': return "----.";
 
             // --- Уникальные кириллические ---
-            case 'ч':
-                return "---.";
-            case 'ш':
-                return "----";
-            case 'ъ':
-                return "--.--";
-            case 'э':
-                return "..-..";
-            case 'ю':
-                return "..--";
-            case 'я':
-                return ".-.-";
+            case 'ч': return "---.";
+            case 'ш': return "----";
+            case 'ъ': return "--.--";
+            case 'э': return "..-..";
+            case 'ю': return "..--";
+            case 'я': return ".-.-";
 
             // --- Знаки препинания ---
-            case ',':
-                return "--..--";
-            case '.':
-                return ".-.-.-";
-            case '?':
-                return "..--..";
-            case '\'':
-                return ".----.";
-            case '!':
-                return "-.-.--";
-            case '/':
-                return "-..-.";
-            case '(':
-                return "-.--.";
-            case ')':
-                return "-.--.-";
-            case '&':
-                return ".-...";
-            case ':':
-                return "---...";
-            case ';':
-                return "-.-.-.";
-            case '=':
-                return "-...-";
-            case '+':
-                return ".-.-.";
-            case '-':
-                return "-....-";
-            case '_':
-                return "..--.-";
-            case '"':
-                return ".-..-.";
-            case '$':
-                return "...-..-";
-            case '@':
-                return ".--.-.";
-            case '№':
-                return "--.--";
+            case ',': return "--..--";
+            case '.': return ".-.-.-";
+            case '?': return "..--..";
+            case '\'': return ".----.";
+            case '!': return "-.-.--";
+            case '/': return "-..-.";
+            case '(': return "-.--.";
+            case ')': return "-.--.-";
+            case '&': return ".-...";
+            case ':': return "---...";
+            case ';': return "-.-.-.";
+            case '=': return "-...-";
+            case '+': return ".-.-.";
+            case '-': return "-....-";
+            case '_': return "..--.-";
+            case '"': return ".-..-.";
+            case '$': return "...-..-";
+            case '@': return ".--.-.";
+            case '№': return "--.--";
 
-            default:
-                return "";}
-        };
+            default: return "";
+        }
     }
+}

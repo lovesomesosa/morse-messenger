@@ -76,11 +76,16 @@
 
 Результат работы:
 1. Примеры перевода текста в Android приложении.
+
 <img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/34e132df-86b6-4357-8456-37ee670c3e35" />
 <img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/3e9751bb-0eef-49c0-908a-cb259e3b21fe" />
-2. Демонстрация работы bluetooth приемника запущенного на RaspberryPie
+
+3. Демонстрация работы bluetooth приемника запущенного на RaspberryPie
+
 <img width="827" height="698" alt="Снимок экрана 2025-12-03 190647" src="https://github.com/user-attachments/assets/455a36a9-d628-45df-8bbb-38efd2abbc94" />
-3. Видео-демонстрация работы приложения на телефоне, подключенном по Bluetooth к RaspberryPie OS, и скрипта приемника сигналов на RaspberryPie.
+
+5. Видео-демонстрация работы приложения на телефоне, подключенном по Bluetooth к RaspberryPie OS, и скрипта приемника сигналов на RaspberryPie.
+
 https://github.com/user-attachments/assets/02d56f03-0f55-48b1-88ea-fe5cfa824a39
 
 

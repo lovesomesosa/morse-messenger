@@ -2,4 +2,5 @@
 <resources>
     <color name="colorBackground">#292C33</color>
     <color name="colorAccent">#7DD3D8</color>
+    <color name="colorError">#FFF44336</color>
 </resources>
